@@ -4,11 +4,16 @@ import io
 import pandas as pd
 import json
 import os
+import glob
 
 st.set_page_config(page_title="Universal Motors - Registo de Ensaio", page_icon="⚡", layout="wide")
 
-# --- FICHEIRO DE PERSISTÊNCIA LOCAL / NUVEM ---
+# --- DIRETÓRIOS E PERSISTÊNCIA NA NUVEM ---
 DB_FILE = "dados_motores.json"
+EXCEL_DIR = "excel_gerados"
+
+if not os.path.exists(EXCEL_DIR):
+    os.makedirs(EXCEL_DIR)
 
 def carregar_dados():
     if os.path.exists(DB_FILE):
@@ -37,12 +42,46 @@ if st.sidebar.button("🗑️ Limpar Todos os Registos"):
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Dica de Utilização:**\n- O operador preenche os motores pelo telemóvel.\n- A colega acompanha a tabela no PC, define as Ordens e descarrega o Excel final.")
+
+# --- ÁREA DE MÚLTIPLOS FICHEIROS PARA ASSINAR ---
+st.sidebar.subheader("📥 Ficheiros Gerados para Assinar")
+ficheiros_excel = glob.glob(os.path.join(EXCEL_DIR, "*.xlsx"))
+
+if ficheiros_excel:
+    # Ordenar dos mais recentes para os mais antigos
+    ficheiros_ordenados = sorted(ficheiros_excel, key=os.path.getmtime, reverse=True)
+    
+    for ficheiro in ficheiros_ordenados:
+        nome_fich = os.path.basename(ficheiro)
+        with open(ficheiro, "rb") as f:
+            excel_bytes_guardado = f.read()
+        
+        st.sidebar.download_button(
+            label=f"📥 {nome_fich}",
+            data=excel_bytes_guardado,
+            file_name=nome_fich,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key=ficheiro,
+            use_container_width=True
+        )
+    
+    if st.sidebar.button("🗑️ Limpar Todos os Excel Gerados"):
+        for f in ficheiros_excel:
+            try:
+                os.remove(f)
+            except:
+                pass
+        st.rerun()
+else:
+    st.sidebar.info("Nenhum Excel gerado ainda.")
+
+st.sidebar.markdown("---")
+st.sidebar.info("💡 **Dica de Utilização:**\n\nO Colaborador preenche a nossa Ordem de Produção e os dados dos motores pelo telemóvel e no final clica em Processar e Gerar Excel Final.")
 
 # -------------------------------------------------------------
 
-st.title("⚡ Registo de Ensaio de Motores - Nuvem (Tempo Real)")
-st.markdown("Aplicação sincronizada em tempo real. Utilize o microfone (voz) em cada campo e clique em **Ok (Adicionar)**.")
+st.title("⚡ Registo de Ensaio de Motores")
+st.markdown("Utilize o microfone (voz) em cada campo e clique em **Ok (Adicionar)**.")
 
 # Campos de Cabeçalho (Ordem de Compra e Ordem de Produção)
 col_h1, col_h2 = st.columns(2)
@@ -108,7 +147,7 @@ if btn_ok:
 medicoes_atuais = carregar_dados()
 
 st.markdown("---")
-st.subheader(f"📊 Pré-visualização da Tabela em Tempo Real ({len(medicoes_atuais)} motores adicionados)")
+st.subheader(f"📊 Pré-visualização da Tabela ({len(medicoes_atuais)} motores adicionados)")
 
 if medicoes_atuais:
     dados_exibicao = []
@@ -165,14 +204,17 @@ if btn_gerar:
             wb.save(output)
             excel_bytes = output.getvalue()
             
-            nome_ficheiro = f"REGISTO_ENSAIO_{ordem_compra.replace('/', '_')}.xlsx"
+            # Criar um nome único baseado na Ordem de Compra e Produção
+            oc_limpa = ordem_compra.replace('/', '_').replace(' ', '_')
+            op_limpa = ordem_producao.replace('/', '_').replace(' ', '_')
+            nome_ficheiro = f"REGISTO_OC_{oc_limpa}_OP_{op_limpa}.xlsx"
             
-            st.success("Ficheiro Excel oficial gerado com sucesso!")
-            st.download_button(
-                label="📥 Descarregar Ficheiro Excel Oficial",
-                data=excel_bytes,
-                file_name=nome_ficheiro,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+            caminho_completo = os.path.join(EXCEL_DIR, nome_ficheiro)
+            with open(caminho_completo, "wb") as f:
+                f.write(excel_bytes)
+            
+            st.success(f"Ficheiro '{nome_ficheiro}' gerado e adicionado à lista lateral com sucesso!")
+            st.rerun()
+            
         except Exception as e:
             st.error(f"Erro ao processar Excel: {e}")
