@@ -1,5 +1,6 @@
 import streamlit as st
 import openpyxl
+from openpyxl.drawing.image import Image
 import io
 import pandas as pd
 import json
@@ -188,10 +189,8 @@ if btn_gerar:
     op_texto = ordem_producao.strip()
     qtd_texto = st.session_state.val_qtd.strip()
     
-    # 1. Validar se a Ordem de Produção está preenchida
     if not op_texto:
         st.warning("⚠️ **Ação Bloqueada:** O campo 'Ordem de Produção' é obrigatório e encontra-se vazio.")
-    # 2. Validar se a Quantidade está preenchida e é um número válido
     elif not qtd_texto:
         st.warning("⚠️ **Ação Bloqueada:** O campo 'Qtd.' é obrigatório e encontra-se vazio.")
     else:
@@ -204,7 +203,6 @@ if btn_gerar:
         
         if qtd_esperada <= 0:
             st.warning("⚠️ **Ação Bloqueada:** Indique uma quantidade válida (maior que zero) no campo 'Qtd.'.")
-        # 3. Validar se o número de motores registados corresponde ao indicado
         elif total_registados < qtd_esperada:
             st.error(f"❌ **Ação Bloqueada:** Tem apenas {total_registados} motor(es) registado(s), mas indicou uma quantidade de {qtd_esperada} motores. Conclua todos os registos antes de gerar o Excel.")
         else:
@@ -212,11 +210,20 @@ if btn_gerar:
                 wb = openpyxl.load_workbook("modelo_registo.xlsx")
                 ws = wb.active
                 
+                # Inserir Ordem de Compra e Produção
                 if ordem_compra:
                     ws["C5"] = ordem_compra
                 if ordem_producao:
                     ws["C6"] = ordem_producao
                 
+                # Inserir o logótipo correto (logo.jpg) na célula A1
+                if os.path.exists("logo.jpg"):
+                    img = Image("logo.jpg")
+                    img.width = 180
+                    img.height = 45
+                    ws.add_image(img, "A1")
+                
+                # Preencher as linhas com as medições
                 for idx, item in enumerate(medicoes_atuais):
                     row = 8 + idx
                     if row <= 39:
