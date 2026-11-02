@@ -8,6 +8,24 @@ import glob
 
 st.set_page_config(page_title="Universal Motors - Registo de Ensaio", page_icon="⚡", layout="wide")
 
+# --- CSS PERSONALIZADO PARA RESPONSIVIDADE NO TELEMÓVEL ---
+st.markdown("""
+    <style>
+    /* Ajustar o título principal para telemóveis */
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 1.8rem !important;
+        }
+        h2 {
+            font-size: 1.4rem !important;
+        }
+        h3 {
+            font-size: 1.2rem !important;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- DIRETÓRIOS E PERSISTÊNCIA NA NUVEM ---
 DB_FILE = "dados_motores.json"
 EXCEL_DIR = "excel_gerados"
@@ -48,7 +66,6 @@ st.sidebar.subheader("📥 Ficheiros Gerados")
 ficheiros_excel = glob.glob(os.path.join(EXCEL_DIR, "*.xlsx"))
 
 if ficheiros_excel:
-    # Ordenar dos mais recentes para os mais antigos
     ficheiros_ordenados = sorted(ficheiros_excel, key=os.path.getmtime, reverse=True)
     
     for ficheiro in ficheiros_ordenados:
@@ -76,7 +93,7 @@ else:
     st.sidebar.info("Nenhum Excel gerado ainda.")
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Dica de Utilização:**\n\n* Utilize o microfone (voz) em cada campo e clique em **Ok (Adicionar)**.\n\n* O Colaborador preenche a nossa Ordem de Produção e os dados dos motores pelo telemóvel e no final clica em Processar e Gerar Excel Final.")
+st.sidebar.info("💡 **Dica de Utilização:**\n\n* Utilize o teclado do telemóvel em cada campo e clique em **Ok (Adicionar)**.\n\n* O Colaborador preenche a nossa Ordem de Produção e os dados dos motores pelo telemóvel e no final clica em Processar e Gerar Excel Final.")
 
 # -------------------------------------------------------------
 
@@ -90,21 +107,21 @@ with col_h2:
     ordem_producao = st.text_input("Ordem de Produção:", value="2026/452")
 
 st.markdown("---")
-st.subheader("🎤 Introdução de Dados do Motor")
+st.subheader("Introdução de Dados do Motor")
 
-# Campos de Entrada com suporte a ditado por voz
+# Campos de Entrada limpos (sem microfones)
 col_u, col_v, col_w, col_ser, col_fuga = st.columns(5)
 
 with col_u:
-    st.session_state.val_u = st.text_input("U 🎤", value=st.session_state.val_u, placeholder="Ex: 8,82")
+    st.session_state.val_u = st.text_input("U", value=st.session_state.val_u, placeholder="Ex: 8,82")
 with col_v:
-    st.session_state.val_v = st.text_input("V 🎤", value=st.session_state.val_v, placeholder="Ex: 9,0")
+    st.session_state.val_v = st.text_input("V", value=st.session_state.val_v, placeholder="Ex: 9,0")
 with col_w:
-    st.session_state.val_w = st.text_input("W 🎤", value=st.session_state.val_w, placeholder="Ex: 8,65")
+    st.session_state.val_w = st.text_input("W", value=st.session_state.val_w, placeholder="Ex: 8,65")
 with col_ser:
-    st.session_state.val_serie = st.text_input("No série 🎤", value=st.session_state.val_serie, placeholder="Ex: 261933-001")
+    st.session_state.val_serie = st.text_input("No série", value=st.session_state.val_serie, placeholder="Ex: 261933-001")
 with col_fuga:
-    st.session_state.val_fuga = st.text_input("Ifuga (mA) 🎤", value=st.session_state.val_fuga, placeholder="Ex: 3,9")
+    st.session_state.val_fuga = st.text_input("Ifuga (mA)", value=st.session_state.val_fuga, placeholder="Ex: 3,9")
 
 # Botões de Ação lado a lado
 col_btn1, col_btn2 = st.columns([1, 4])
@@ -203,7 +220,6 @@ if btn_gerar:
             wb.save(output)
             excel_bytes = output.getvalue()
             
-            # Criar um nome único baseado na Ordem de Compra e Produção
             oc_limpa = ordem_compra.replace('/', '_').replace(' ', '_')
             op_limpa = ordem_producao.replace('/', '_').replace(' ', '_')
             nome_ficheiro = f"REGISTO_OC_{oc_limpa}_OP_{op_limpa}.xlsx"
