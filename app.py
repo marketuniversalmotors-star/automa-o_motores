@@ -11,7 +11,6 @@ st.set_page_config(page_title="Universal Motors - Registo de Ensaio", page_icon=
 # --- CSS PERSONALIZADO PARA RESPONSIVIDADE NO TELEMÓVEL ---
 st.markdown("""
     <style>
-    /* Ajustar o título principal para telemóveis */
     @media (max-width: 768px) {
         h1 {
             font-size: 1.8rem !important;
@@ -50,8 +49,9 @@ def guardar_dados(dados):
 if "val_u" not in st.session_state: st.session_state.val_u = ""
 if "val_v" not in st.session_state: st.session_state.val_v = ""
 if "val_w" not in st.session_state: st.session_state.val_w = ""
-if "val_serie" not in st.session_state: st.session_state.val_serie = ""
 if "val_fuga" not in st.session_state: st.session_state.val_fuga = ""
+if "val_serie" not in st.session_state: st.session_state.val_serie = ""
+if "val_qtd" not in st.session_state: st.session_state.val_qtd = ""
 
 # --- BARRA LATERAL ---
 st.sidebar.subheader("⚙️ Gestão de Registos")
@@ -99,18 +99,22 @@ st.sidebar.info("💡 **Dica de Utilização:**\n\n* Utilize o teclado do telem�
 
 st.title("⚡ Registo de Ensaio de Motores")
 
-# Campos de Cabeçalho (Ordem de Compra e Ordem de Produção)
-col_h1, col_h2 = st.columns(2)
+# Linha Superior: Ordem de Compra, Ordem de Produção, Nº série e Qtd.
+col_h1, col_h2, col_h3, col_h4 = st.columns([3, 3, 2.5, 1.5])
 with col_h1:
     ordem_compra = st.text_input("Ordem de Compra:", value="EF001EF25/02868")
 with col_h2:
     ordem_producao = st.text_input("Ordem de Produção:", value="2026/452")
+with col_h3:
+    st.session_state.val_serie = st.text_input("No série", value=st.session_state.val_serie, placeholder="Ex: 261933-001")
+with col_h4:
+    st.session_state.val_qtd = st.text_input("Qtd.", value=st.session_state.val_qtd, placeholder="Ex: 10")
 
 st.markdown("---")
 st.subheader("Introdução de Dados do Motor")
 
-# Campos de Entrada limpos (sem microfones)
-col_u, col_v, col_w, col_ser, col_fuga = st.columns(5)
+# Linha de baixo: Apenas as medições (U, V, W, Ifuga)
+col_u, col_v, col_w, col_fuga = st.columns(4)
 
 with col_u:
     st.session_state.val_u = st.text_input("U", value=st.session_state.val_u, placeholder="Ex: 8,82")
@@ -118,8 +122,6 @@ with col_v:
     st.session_state.val_v = st.text_input("V", value=st.session_state.val_v, placeholder="Ex: 9,0")
 with col_w:
     st.session_state.val_w = st.text_input("W", value=st.session_state.val_w, placeholder="Ex: 8,65")
-with col_ser:
-    st.session_state.val_serie = st.text_input("No série", value=st.session_state.val_serie, placeholder="Ex: 261933-001")
 with col_fuga:
     st.session_state.val_fuga = st.text_input("Ifuga (mA)", value=st.session_state.val_fuga, placeholder="Ex: 3,9")
 
@@ -141,20 +143,21 @@ if btn_ok:
             "u": st.session_state.val_u.strip(),
             "v": st.session_state.val_v.strip(),
             "w": st.session_state.val_w.strip(),
+            "ifuga": st.session_state.val_fuga.strip(),
             "no_serie": st.session_state.val_serie.strip(),
-            "ifuga": st.session_state.val_fuga.strip()
+            "qtd": st.session_state.val_qtd.strip()
         }
         
         medicoes = carregar_dados()
         medicoes.append(novo_motor)
         guardar_dados(medicoes)
         
-        # Limpar os valores dos inputs instantaneamente
+        # Limpar apenas os campos de medição (mantendo as ordens, série e quantidade para facilitar o fluxo se desejar)
         st.session_state.val_u = ""
         st.session_state.val_v = ""
         st.session_state.val_w = ""
-        st.session_state.val_serie = ""
         st.session_state.val_fuga = ""
+        st.session_state.val_serie = ""
         
         st.success(f"Motor adicionado com sucesso! ({len(medicoes)} registados)")
         st.rerun()
@@ -168,14 +171,12 @@ st.subheader(f"📊 Pré-visualização da Tabela ({len(medicoes_atuais)} motore
 if medicoes_atuais:
     dados_exibicao = []
     for idx, m in enumerate(medicoes_atuais):
-        bloco = "Bloco 1 (1-20)" if idx < 20 else "Bloco 2 (21-40)"
         dados_exibicao.append({
             "Nº Registo": idx + 1,
-            "Bloco": bloco,
+            "No série": m["no_serie"],
             "U": m["u"],
             "V": m["v"],
             "W": m["w"],
-            "No série": m["no_serie"],
             "Ifuga (mA)": m["ifuga"]
         })
     
