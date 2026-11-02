@@ -43,8 +43,8 @@ if st.sidebar.button("🗑️ Limpar Todos os Registos"):
 
 st.sidebar.markdown("---")
 
-# --- ÁREA DE MÚLTIPLOS FICHEIROS PARA ASSINAR ---
-st.sidebar.subheader("📥 Ficheiros Gerados para Assinar")
+# --- ÁREA DE MÚLTIPLOS FICHEIROS GERADOS ---
+st.sidebar.subheader("📥 Ficheiros Gerados")
 ficheiros_excel = glob.glob(os.path.join(EXCEL_DIR, "*.xlsx"))
 
 if ficheiros_excel:
