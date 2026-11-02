@@ -93,7 +93,7 @@ else:
     st.sidebar.info("Nenhum Excel gerado ainda.")
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Dica de Utilização:**\n\n* Utilize o teclado do telemóvel em cada campo e clique em **Ok (Adicionar)**.\n\n* O Colaborador preenche a nossa Ordem de Produção e os dados dos motores pelo telemóvel e no final clica em Processar e Gerar Excel Final.")
+st.sidebar.info("💡 **Dica de Utilização:**\n\n* Utilize o teclado do telemóvel em cada campo e clique em **Ok (Adicionar)**.\n\n* O Colaborador preenche a Ordem de Produção, indica a quantidade total e regista os motores.")
 
 # -------------------------------------------------------------
 
@@ -104,7 +104,7 @@ col_h1, col_h2, col_h3, col_h4 = st.columns([3, 3, 2.5, 1.5])
 with col_h1:
     ordem_compra = st.text_input("Ordem de Compra:", value="EF001EF25/02868")
 with col_h2:
-    ordem_producao = st.text_input("Ordem de Produção:", value="2026/452")
+    ordem_producao = st.text_input("Ordem de Produção:", value="")
 with col_h3:
     st.session_state.val_serie = st.text_input("No série", value=st.session_state.val_serie, placeholder="Ex: 261933-001")
 with col_h4:
@@ -144,15 +144,13 @@ if btn_ok:
             "v": st.session_state.val_v.strip(),
             "w": st.session_state.val_w.strip(),
             "ifuga": st.session_state.val_fuga.strip(),
-            "no_serie": st.session_state.val_serie.strip(),
-            "qtd": st.session_state.val_qtd.strip()
+            "no_serie": st.session_state.val_serie.strip()
         }
         
         medicoes = carregar_dados()
         medicoes.append(novo_motor)
         guardar_dados(medicoes)
         
-        # Limpar apenas os campos de medição (mantendo as ordens, série e quantidade para facilitar o fluxo se desejar)
         st.session_state.val_u = ""
         st.session_state.val_v = ""
         st.session_state.val_w = ""
@@ -185,52 +183,63 @@ if medicoes_atuais:
 else:
     st.info("A tabela está vazia. Assim que o colaborador adicionar um motor, ele aparecerá aqui instantaneamente.")
 
-# --- GERAR EXCEL FINAL ---
+# --- GERAR EXCEL FINAL COM VALIDAÇÕES RIGOROSAS ---
 if btn_gerar:
-    medicoes_para_excel = carregar_dados()
-    if not medicoes_para_excel:
-        st.warning("Adicione pelo menos um motor antes de gerar o Excel.")
+    op_texto = ordem_producao.strip()
+    qtd_texto = st.session_state.val_qtd.strip()
+    
+    # 1. Validar se a Ordem de Produção está preenchida
+    if not op_texto:
+        st.warning("⚠️ **Ação Bloqueada:** O campo 'Ordem de Produção' é obrigatório e encontra-se vazio.")
+    # 2. Validar se a Quantidade está preenchida e é um número válido
+    elif not qtd_texto:
+        st.warning("⚠️ **Ação Bloqueada:** O campo 'Qtd.' é obrigatório e encontra-se vazio.")
     else:
         try:
-            wb = openpyxl.load_workbook("modelo_registo.xlsx")
-            ws = wb.active
+            qtd_esperada = int(qtd_texto)
+        except ValueError:
+            qtd_esperada = 0
             
-            # Preencher Ordem de Compra (C5) e Ordem de Produção (C6)
-            if ordem_compra:
-                ws["C5"] = ordem_compra
-            if ordem_producao:
-                ws["C6"] = ordem_producao
-            
-            for idx, item in enumerate(medicoes_para_excel):
-                if idx < 20:
+        total_registados = len(medicoes_atuais)
+        
+        if qtd_esperada <= 0:
+            st.warning("⚠️ **Ação Bloqueada:** Indique uma quantidade válida (maior que zero) no campo 'Qtd.'.")
+        # 3. Validar se o número de motores registados corresponde ao indicado
+        elif total_registados < qtd_esperada:
+            st.error(f"❌ **Ação Bloqueada:** Tem apenas {total_registados} motor(es) registado(s), mas indicou uma quantidade de {qtd_esperada} motores. Conclua todos os registos antes de gerar o Excel.")
+        else:
+            try:
+                wb = openpyxl.load_workbook("modelo_registo.xlsx")
+                ws = wb.active
+                
+                if ordem_compra:
+                    ws["C5"] = ordem_compra
+                if ordem_producao:
+                    ws["C6"] = ordem_producao
+                
+                for idx, item in enumerate(medicoes_atuais):
                     row = 8 + idx
-                    if item["u"]: ws[f"A{row}"] = item["u"]
-                    if item["v"]: ws[f"B{row}"] = item["v"]
-                    if item["w"]: ws[f"C{row}"] = item["w"]
-                    if item["no_serie"]: ws[f"D{row}"] = item["no_serie"]
-                    if item["ifuga"]: ws[f"E{row}"] = item["ifuga"]
-                elif idx < 40:
-                    row = 8 + (idx - 20)
-                    if item["u"]: ws[f"F{row}"] = item["u"]
-                    if item["v"]: ws[f"G{row}"] = item["v"]
-                    if item["w"]: ws[f"H{row}"] = item["w"]
-                    if item["no_serie"]: ws[f"I{row}"] = item["no_serie"]
-                    if item["ifuga"]: ws[f"J{row}"] = item["ifuga"]
-            
-            output = io.BytesIO()
-            wb.save(output)
-            excel_bytes = output.getvalue()
-            
-            oc_limpa = ordem_compra.replace('/', '_').replace(' ', '_')
-            op_limpa = ordem_producao.replace('/', '_').replace(' ', '_')
-            nome_ficheiro = f"REGISTO_OC_{oc_limpa}_OP_{op_limpa}.xlsx"
-            
-            caminho_completo = os.path.join(EXCEL_DIR, nome_ficheiro)
-            with open(caminho_completo, "wb") as f:
-                f.write(excel_bytes)
-            
-            st.success(f"Ficheiro '{nome_ficheiro}' gerado e adicionado à lista lateral com sucesso!")
-            st.rerun()
-            
-        except Exception as e:
-            st.error(f"Erro ao processar Excel: {e}")
+                    if row <= 39:
+                        if item["no_serie"]: ws[f"A{row}"] = item["no_serie"]
+                        if item["u"]: ws[f"B{row}"] = item["u"]
+                        if item["v"]: ws[f"C{row}"] = item["v"]
+                        if item["w"]: ws[f"D{row}"] = item["w"]
+                        if item["ifuga"]: ws[f"E{row}"] = item["ifuga"]
+                
+                output = io.BytesIO()
+                wb.save(output)
+                excel_bytes = output.getvalue()
+                
+                oc_limpa = ordem_compra.replace('/', '_').replace(' ', '_')
+                op_limpa = ordem_producao.replace('/', '_').replace(' ', '_')
+                nome_ficheiro = f"REGISTO_OC_{oc_limpa}_OP_{op_limpa}.xlsx"
+                
+                caminho_completo = os.path.join(EXCEL_DIR, nome_ficheiro)
+                with open(caminho_completo, "wb") as f:
+                    f.write(excel_bytes)
+                
+                st.success(f"Ficheiro '{nome_ficheiro}' gerado com sucesso e disponibilizado na barra lateral!")
+                st.rerun()
+                
+            except Exception as e:
+                st.error(f"Erro ao processar Excel: {e}")
