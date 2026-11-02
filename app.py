@@ -76,7 +76,7 @@ else:
     st.sidebar.info("Nenhum Excel gerado ainda.")
 
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Dica de Utilização:**\n\n1. Utilize o microfone (voz) em cada campo e clique em **Ok (Adicionar)**.\n\n2. O Colaborador preenche a nossa Ordem de Produção e os dados dos motores pelo telemóvel e no final clica em Processar e Gerar Excel Final.")
+st.sidebar.info("💡 **Dica de Utilização:**\n\n* Utilize o microfone (voz) em cada campo e clique em **Ok (Adicionar)**.\n\n* O Colaborador preenche a nossa Ordem de Produção e os dados dos motores pelo telemóvel e no final clica em Processar e Gerar Excel Final.")
 
 # -------------------------------------------------------------
 
